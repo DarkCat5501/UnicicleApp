@@ -1,0 +1,46 @@
+<fieldset class="editor" editor-skip>
+  <legend>Editor</legend>
+
+  <ul id="editor-compList"></ul>
+
+  <button onclick="editor.save()">Save</button>
+</fieldset>
+
+<script type="module" editor-skip>
+  import { TreeType } from "./types.js";
+  import { toElements } from "./nilla.js";
+
+  var ce = window.clientEditor;
+  const compoentList = document.getElementById("editor-compList");
+
+  function onStart() {
+    ce.listTree(TreeType.COMP).then((tree) => {
+      const compListItems = Array.from(tree, (it) => {
+        return toElements(`${it}`, "li");
+      });
+
+      compoentList.insert(...compListItems);
+    });
+  }
+
+  ce.appendEvent("start", onStart);
+
+  window.editor = {
+    save() {
+      ce.updateFile();
+    },
+  };
+
+  console.log("started editor");
+</script>
+
+<style editor-skip>
+  .editor {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+  }
+</style>
