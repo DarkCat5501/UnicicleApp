@@ -3,50 +3,44 @@
 
   <div class="editor-row">
     <label for="ed-grab">Grab</label>
-    <input
-      id="ed-grab"
-      name="ed-mode"
-      type="radio"
-      onchange="editor.setMode(eModes.GRAB)"
-    />
+    <input id="ed-grab" name="ed-mode" type="radio" onchange="editor.setMode(eModes.GRAB)" />
     <label for="ed-insert">Insert</label>
-    <input
-      id="ed-insert"
-      name="ed-mode"
-      type="radio"
-      onchange="editor.setMode(eModes.INSERT)"
-    />
+    <input id="ed-insert" name="ed-mode" type="radio" onchange="editor.setMode(eModes.INSERT)" />
     <label for="ed-disable">Disable</label>
-    <input
-      id="ed-disable"
-      name="ed-mode"
-      type="radio"
-      onchange="editor.setMode(eModes.DISABLED)"
-    />
+    <input id="ed-disable" name="ed-mode" type="radio" onchange="editor.setMode(eModes.DISABLED)" />
   </div>
 
   <ul id="editor-compList"></ul>
 
-  <button class="editor-save" onclick="editor.save()">Save</button>
-</fieldset>
+  <button onclick="editor.delete()">Delete</button>
+  <button onclick="editor.save()">Save</button>
 
+</fieldset>
 <script type="module" editor-skip>
-  import { TreeType } from "./types.js";
-  import { toElements, include } from "./nilla.js";
+  import {TreeType} from "./types.js";
+  import {toElements, include} from "./nilla.js";
 
   var ce = window.clientEditor;
-  window.eModes = {
+  const Modes = {
     DISABLED: 0,
     GRAB: 1,
     INSERT: 2,
   };
 
+  window.eModes = Modes;
+
   var ed_ctx = {
     mode: eModes.DISABLED,
     selected: document.body,
+    hovering: null,
   };
 
   const compoentList = document.getElementById("editor-compList");
+  const ed_mode_grab = document.getElementById("ed-grab");
+  const ed_mode_insert = document.getElementById("ed-insert");
+  const ed_mode_disable = document.getElementById("ed-disable");
+
+  ed_mode_disable.checked = true;
 
   function onStart() {
     console.log("started editor");
@@ -55,7 +49,7 @@
       const itemsList = Array.from(tree2, (it) =>
         toElements(
           `<button class="editor-add" onclick="editor.add('${it}')">${it.replace(
-            "componets/",
+            "components/",
             "",
           )}</button>`,
           "li",
@@ -66,18 +60,69 @@
     });
   }
 
+  const coutlineMap = new Map();
+  window.addEventListener("mouseover", (e) => {
+    const {target} = e;
+    if (ed_ctx.mode === Modes.GRAB) {
+      coutlineMap.set(target, target.style.outline);
+      target.style.outline = "3px dotted red";
+      target.setAttribute("ed-select", "true");
+      event.preventDefault();
+      ed_ctx.hovering = target;
+    }
+  });
+
+  document.onclick = function () {
+    return ed_ctx.mode !== Modes.GRAB;
+  };
+  document.onkeydown = function (e) {
+    if (e.ctrlKey && e.key === "s") {
+      editor.save();
+      return false;
+    }
+    return true;
+  };
+
+  window.addEventListener("click", (e) => {
+    let target = e.target;
+    if (ed_ctx.mode === Modes.GRAB) {
+      ed_ctx.mode = Modes.INSERT;
+      if (target.tagName === "HTML") {
+        target = document.body
+      }
+      console.log("selected", target);
+      ed_ctx.selected = target;
+      ed_mode_insert.checked = true;
+      event.preventDefault();
+    }
+  });
+
+  window.addEventListener("mouseout", (e) => {
+    const {target} = e;
+    if (target.getAttribute("ed-select") && coutlineMap.has(target)) {
+      target.removeAttribute("ed-select");
+      target.style.outline = coutlineMap.get(target);
+      coutlineMap.delete(target);
+    }
+  });
+
   window.editor = {
     save() {
       ce.updateFile();
     },
     add(compname) {
-      if (ed_ctx.selected) {
+      if (ed_ctx.selected && ed_ctx.mode === eModes.INSERT) {
         include(compname).then((data) => {
           const elements = toElements(data);
           ed_ctx.selected.insert(elements);
         });
       } else {
-        console.error("No container selected for insert");
+        console.error("Cannot insert element");
+      }
+    },
+    delete() {
+      if (ed_ctx.selected) {
+        ed_ctx.selected.delete();
       }
     },
     setMode(mode) {
@@ -97,8 +142,7 @@
     padding: 0;
   }
 
-  .editor legend {
-  }
+  .editor legend {}
 
   .editor ul {
     list-style: none;
@@ -136,3 +180,4 @@
     text-align: right;
   }
 </style>
+</fieldset>

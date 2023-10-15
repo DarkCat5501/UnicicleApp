@@ -166,21 +166,26 @@ function requestClientReload(path) {
 }
 
 async function updateTree(tree, cpath) {
+  const newFiles = [];
   for await (const fileInfo of getFiles(cpath, [])) {
+    if (!tree.has(fileInfo.fillpath)) {
+      newFiles.push(fileInfo.fullpath);
+    }
+    //update or set new file data
     tree.set(fileInfo.fullpath, fileInfo);
   }
+  return newFiles;
 }
 
 async function startServer() {
-  await updateTree(projectTree, APP_PATH);
-  await updateTree(componentTree, COMP_PATH);
+  const projectPaths = await updateTree(projectTree, APP_PATH);
+  const componentsPaths = await updateTree(componentTree, COMP_PATH);
 
-  console.log("project files", projectTree);
-  console.log("component files", componentTree);
-
+  console.log("project files", projectPaths);
+  console.log("component files", componentsPaths);
   console.log("startig Server..");
   attachServer();
-  setInterval(updateClients, 1000);
+  // setInterval(updateClients, 1000);
 
   const app = express();
   app.use(express.static(APP_PATH));
@@ -200,11 +205,19 @@ async function startServer() {
   }
 
   //server components
-  for (const [route, file] of componentTree.entries()) {
-    const fpath = pth.join(COMP_PATH, file.dirent.name);
-    console.log("serving components", route, fpath);
-    app.get(`/${route}`, (_req, res) => {
-      res.sendFile(pth.resolve(fpath));
+  {
+    const componentsPath = pth.join(COMP_PATH, ":fileName");
+    app.get(`/${componentsPath}`, (req, res) => {
+      const { fileName } = req.params;
+      const cfile = pth.join(COMP_PATH, fileName);
+      if (componentTree.has(cfile)) {
+        res.sendFile(pth.resolve(cfile));
+      } else
+        [
+          res.status(400).send({
+            message: `Component ${fileName} Not found!`,
+          }),
+        ];
     });
   }
 

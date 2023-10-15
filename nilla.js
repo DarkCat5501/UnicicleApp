@@ -54,8 +54,19 @@ export function uiInsertAfter(element, ...elements) {
   }
 }
 
+export function uiDelete(element) {
+  const { parentElement } = element;
+  if (parentElement) {
+    parentElement.removeChild(element);
+  }
+}
+
 HTMLElement.prototype.insert = function (...elements) {
   uiInsert(this, ...elements);
+};
+
+HTMLElement.prototype.delete = function () {
+  uiDelete(this);
 };
 
 HTMLElement.prototype.insertAfter = function (...elements) {
@@ -71,10 +82,11 @@ HTMLElement.prototype.refs = function () {
 };
 
 HTMLElement.prototype.replace = function (...replacements) {
-  const parent = this.parent;
-  if (!parent) return; //parent does not exists
-  uiInsertBefore(this, ...replacements);
-  parent.removeChild(this);
+  const parent = this.parentElement;
+  if (parent) {
+    uiInsertBefore(this, ...replacements);
+    parent.removeChild(this);
+  }
 };
 
 Number.prototype.toLengthOf = function (value) {

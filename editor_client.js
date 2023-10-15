@@ -73,7 +73,6 @@ class EditorClient {
   }
 
   _callEvents(type) {
-    // console.log("calling events", type);
     if (!(type in this._handlers)) {
       throw new Error("Unknown event type called");
     }
@@ -91,7 +90,6 @@ class EditorClient {
       throw new Error("Handler type nort defined");
     }
     if (this._handlers[type].called) {
-      console.log("force call");
       this._callEvents(type); //force run other callbacks
       callback(); //force run callback
     } else {
@@ -189,11 +187,9 @@ class EditorClient {
   }
   rendeNodeAttributes(node) {
     const { attributes } = node;
-    // console.log("attributes", attributes);
     const output = [];
     for (const attr of attributes) {
       output.push(`${attr.name}="${attr.value.replaceAll('"', '\\"')}"`);
-      // console.log(attr.name, attr.value);
     }
 
     return output.join(" ");
@@ -202,7 +198,6 @@ class EditorClient {
   canSkipNode(node) {
     const attributes = "attributes" in node ? node.attributes : {};
     if (attributes["editor-skip"]) {
-      console.log("skipping", node);
       return true;
     }
     return false;
@@ -210,10 +205,7 @@ class EditorClient {
 
   renderNode(node, ident) {
     const { nodeType } = node;
-
     if (this.canSkipNode(node)) return null;
-
-    // console.log(node, nodeType);
     switch (nodeType) {
       case 3:
         //TODO: clear text with only whitespaces
@@ -329,9 +321,14 @@ class EditorClient {
   updateFile() {
     const currentFile = location.pathname.replace("/", "");
     const content = this.documentContent();
-    console.log(content);
     this.skipReload.add(currentFile);
-    this.sendPayload(MessageTypes.WRITE, { content: content });
+    this.sendRequest(MessageTypes.WRITE, { content: content })
+      .then(() => {
+        console.log("[saved!]");
+      })
+      .catch(() => {
+        console.error("couldn't save file!");
+      });
   }
 }
 
@@ -365,12 +362,12 @@ function loadScripts(scripts) {
 window.clientEditor = new EditorClient();
 
 async function mainUI() {
-  const app = document.getElementById("app");
+  const app = document.body;
+  // const app = document.getElementById("app");
   const fwindow = await include("components/editor.html");
   const floaWindow = toElements(fwindow);
   const scripts = stripScripts(floaWindow);
   app.insert(floaWindow);
-  // console.log("loading scripts", scripts);
   loadScripts(scripts);
 }
 
