@@ -1,37 +1,90 @@
 <fieldset class="editor" editor-skip>
-  <legend>Editor</legend>
+  <legend>Editor teste</legend>
+
+  <div class="editor-row">
+    <label for="ed-grab">Grab</label>
+    <input
+      id="ed-grab"
+      name="ed-mode"
+      type="radio"
+      onchange="editor.setMode(eModes.GRAB)"
+    />
+    <label for="ed-insert">Insert</label>
+    <input
+      id="ed-insert"
+      name="ed-mode"
+      type="radio"
+      onchange="editor.setMode(eModes.INSERT)"
+    />
+    <label for="ed-disable">Disable</label>
+    <input
+      id="ed-disable"
+      name="ed-mode"
+      type="radio"
+      onchange="editor.setMode(eModes.DISABLED)"
+    />
+  </div>
 
   <ul id="editor-compList"></ul>
 
-  <button onclick="editor.save()">Save</button>
+  <button class="editor-save" onclick="editor.save()">Save</button>
 </fieldset>
 
 <script type="module" editor-skip>
   import { TreeType } from "./types.js";
-  import { toElements } from "./nilla.js";
+  import { toElements, include } from "./nilla.js";
 
   var ce = window.clientEditor;
+  window.eModes = {
+    DISABLED: 0,
+    GRAB: 1,
+    INSERT: 2,
+  };
+
+  var ed_ctx = {
+    mode: eModes.DISABLED,
+    selected: document.body,
+  };
+
   const compoentList = document.getElementById("editor-compList");
 
   function onStart() {
+    console.log("started editor");
     ce.listTree(TreeType.COMP).then((tree) => {
-      const compListItems = Array.from(tree, (it) => {
-        return toElements(`${it}`, "li");
-      });
+      const tree2 = tree.filter((it) => it !== "components/editor.html");
+      const itemsList = Array.from(tree2, (it) =>
+        toElements(
+          `<button class="editor-add" onclick="editor.add('${it}')">${it.replace(
+            "componets/",
+            "",
+          )}</button>`,
+          "li",
+        ),
+      );
 
-      compoentList.insert(...compListItems);
+      compoentList.insert(...itemsList);
     });
   }
-
-  ce.appendEvent("start", onStart);
 
   window.editor = {
     save() {
       ce.updateFile();
     },
+    add(compname) {
+      if (ed_ctx.selected) {
+        include(compname).then((data) => {
+          const elements = toElements(data);
+          ed_ctx.selected.insert(elements);
+        });
+      } else {
+        console.error("No container selected for insert");
+      }
+    },
+    setMode(mode) {
+      ed_ctx.mode = mode;
+    },
   };
-
-  console.log("started editor");
+  ce.appendEvent("start", onStart);
 </script>
 
 <style editor-skip>
@@ -42,5 +95,44 @@
     right: 0;
     margin: 0;
     padding: 0;
+  }
+
+  .editor legend {
+  }
+
+  .editor ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .editor ul li {
+    margin: 0;
+    padding-inline: 10px;
+    background-color: #1d1d1d7f;
+    color: white;
+  }
+
+  .editor ul li:hover {
+    background-color: #1d1d1d;
+  }
+
+  .editor-save {
+    width: 100%;
+  }
+
+  .editor-add {
+    border: none;
+    background: none;
+  }
+
+  .editor-row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .editor label {
+    width: 100%;
+    text-align: right;
   }
 </style>
