@@ -95,7 +95,6 @@ class EditorClient {
       this._callEvents(type); //force run other callbacks
       callback(); //force run callback
     } else {
-      console.log("piped call", this._handlers);
       this._handlers[type].events.push({ fn: callback, called: false });
     }
   }
@@ -331,8 +330,8 @@ class EditorClient {
     const currentFile = location.pathname.replace("/", "");
     const content = this.documentContent();
     console.log(content);
-    // this.skipReload.add(currentFile);
-    // this.sendPayload(MessageTypes.WRITE, { content: content });
+    this.skipReload.add(currentFile);
+    this.sendPayload(MessageTypes.WRITE, { content: content });
   }
 }
 
@@ -368,12 +367,10 @@ window.clientEditor = new EditorClient();
 async function mainUI() {
   const app = document.getElementById("app");
   const fwindow = await include("components/editor.html");
-
   const floaWindow = toElements(fwindow);
-
   const scripts = stripScripts(floaWindow);
-
   app.insert(floaWindow);
+  // console.log("loading scripts", scripts);
   loadScripts(scripts);
 }
 
